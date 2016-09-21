@@ -1,10 +1,13 @@
 from mongoalchemy.document import Index
-from mongoalchemy.fields import *  # noqa
+from mongoalchemy.fields import (
+    EnumField,
+    BoolField
+)
 
-from webbaseserver.utils import SafeStringField
-from webbaseserver.model.base_model import BaseModel
-from webbaseserver.settings import config
-from webbaseserver.exceptions import *  # noqa
+from server.utils import SafeStringField
+from server.model.basemodel import BaseModel
+from server.settings import config
+from server import exceptions
 
 
 class {{cookiecutter.model_name|title}}(BaseModel):
@@ -17,9 +20,9 @@ class {{cookiecutter.model_name|title}}(BaseModel):
 
     def __repr__(self):
         try:
-            _repr = "{{cookiecutter.model_name|title}} <safe_string: {safe_string}"  # noqa
+            _repr = "{{cookiecutter.model_name|title}} <safe_string: {self.safe_string}"  # noqa
             return _repr.format(
-                safe_string=self.safe_string
+                self=self
                 )
         except AttributeError:
             return "{{cookiecutter.model_name|title}} uninitialized"
@@ -43,11 +46,17 @@ class {{cookiecutter.model_name|title}}(BaseModel):
         return {k: data[k] for k in data if k in editable_fields}
 
     async def validate_and_save(self, context):
-        queue = context.get('queue')
         data = context.get('data')
         db_session = context.get('db_session')
 
         is_new = await self.is_new()
+
+        # SAFE STRING
+        safe_string = data.get('safe_string')
+        if safe_string:
+            self.safe_string = safe_string
+        else:
+            raise exceptions.MissingValueExceptions('safe_string')
 
         db_session.save(self, safe=True)
 
